@@ -3,4 +3,7 @@ torch
 torchvision
 ultralytics
 opencv-python-headless
-streamlit
+scikit-learn
+pandas
+numpy
+matplotlib
