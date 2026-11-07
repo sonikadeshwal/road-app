@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -12,9 +14,12 @@ st.set_page_config(page_title="Road Damage Detector", layout="wide")
 NAMES = {0: "Longitudinal crack", 1: "Transverse crack", 2: "Alligator crack", 3: "Pothole", 4: "Other"}
 
 
+MODEL_PATH = Path(__file__).parent / "best.pt"
+
+
 @st.cache_resource
 def load_model():
-    return YOLO("best.pt")
+    return YOLO(str(MODEL_PATH))
 
 
 def ransac_plane(P, thr=0.01, iters=300, seed=0):
@@ -73,6 +78,9 @@ with tab1:
     conf = st.slider("Confidence threshold (lower finds more, with more false alarms)", 0.05, 0.9, 0.2, 0.05)
     f = st.file_uploader("Road photo", type=["jpg", "jpeg", "png"])
     if f:
+        if not MODEL_PATH.exists():
+            st.error("best.pt was not found next to app.py. Upload it to the same folder (exact name: best.pt) and reboot the app.")
+            st.stop()
         img = Image.open(f).convert("RGB")
         r = load_model().predict(img, conf=conf, imgsz=640, verbose=False)[0]
         r.names = NAMES
