@@ -5,7 +5,7 @@ We built a system that finds cracks and potholes in road photos and rates how se
 - **Image part:** a YOLOv8s model detects and names road damage.
 - **LiDAR part:** RANSAC finds the road surface, DBSCAN separates potholes, and the depth sets the severity (LOW, MEDIUM, HIGH).
 
-**Live demo:** https://YOUR-USERNAME-road-damage-detector.hf.space
+**Live demo:** https://huggingface.co/spaces/sonikadeshwal/road-damage-detection
 
 > The LiDAR part runs on a **simulated** road, because we could not find public road LiDAR with damage labels. See Limitations.
 
