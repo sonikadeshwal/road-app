@@ -10,10 +10,6 @@ from ultralytics import YOLO
 
 st.set_page_config(page_title="Road Damage Detector", layout="wide")
 
-# class ids from the RDD2022 subset model (see paper, Table IV)
-NAMES = {0: "Longitudinal crack", 1: "Transverse crack", 2: "Alligator crack", 3: "Pothole", 4: "Other"}
-
-
 MODEL_PATH = Path(__file__).parent / "best.pt"
 
 
@@ -74,22 +70,31 @@ st.title("Road Surface Crack and Distress Detection")
 tab1, tab2 = st.tabs(["Image detection", "LiDAR depth demo (simulated)"])
 
 with tab1:
-    st.write("Upload a road photo. A YOLOv8s model finds cracks and potholes.")
-    conf = st.slider("Confidence threshold (lower finds more, with more false alarms)", 0.05, 0.9, 0.2, 0.05)
+    if not MODEL_PATH.exists():
+        st.error("best.pt was not found next to app.py. Upload it to the same folder "
+                 "(exact name: best.pt) and reboot the app.")
+        st.stop()
+
+    model = load_model()
+    names = model.names  # class names come from the trained model itself
+    st.write(f"Upload a road photo. A YOLOv8s model detects: **{', '.join(names.values())}**.")
+
+    conf = st.slider("Confidence threshold (lower finds more, with more false alarms)",
+                     0.05, 0.9, 0.2, 0.05)
     f = st.file_uploader("Road photo", type=["jpg", "jpeg", "png"])
+
     if f:
-        if not MODEL_PATH.exists():
-            st.error("best.pt was not found next to app.py. Upload it to the same folder (exact name: best.pt) and reboot the app.")
-            st.stop()
         img = Image.open(f).convert("RGB")
-        r = load_model().predict(img, conf=conf, imgsz=640, verbose=False)[0]
-        r.names = NAMES
-        st.image(r.plot()[:, :, ::-1], caption=f"{len(r.boxes)} damage(s) found", use_container_width=True)
+        r = model.predict(img, conf=conf, imgsz=640, verbose=False)[0]
+        st.image(r.plot()[:, :, ::-1], caption=f"{len(r.boxes)} damage(s) found",
+                 use_container_width=True)
         if len(r.boxes):
-            df = pd.DataFrame({"damage": [NAMES.get(int(c), str(int(c))) for c in r.boxes.cls],
+            df = pd.DataFrame({"damage": [names[int(c)] for c in r.boxes.cls],
                                "confidence": r.boxes.conf.cpu().numpy()})
             st.dataframe(df.groupby("damage").agg(count=("damage", "size"),
                                                   mean_confidence=("confidence", "mean")).round(2))
+        else:
+            st.info("No damage found. Try lowering the confidence threshold.")
 
 with tab2:
     st.write("A simulated 10 m by 4 m road with two potholes. The method fits the road plane (RANSAC), "
